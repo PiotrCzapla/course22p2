@@ -86,12 +86,12 @@ def get_grid(
 # %% ../nbs/05_datasets.ipynb 47
 @fc.delegates(subplots)
 def show_images(ims:list, # Images to show
-                nrows:int=1, # Number of rows in grid
+                nrows:int|None=None, # Number of rows in grid
                 ncols:int|None=None, # Number of columns in grid (auto-calculated if None)
                 titles:list|None=None, # Optional list of titles for each image
                 **kwargs):
     "Show all images `ims` as subplots with `rows` using `titles`"
-    axs = get_grid(len(ims), **kwargs)[1].flat
+    axs = get_grid(len(ims), nrows, ncols, **kwargs)[1].flat
     for im,t,ax in zip_longest(ims, titles or [], axs): show_image(im, ax=ax, title=t)
 
 # %% ../nbs/05_datasets.ipynb 51
