@@ -107,7 +107,7 @@ def rand_copy(x, pct=0.2, max_num = 4):
     num = random.randint(0, max_num)
     for i in range(num): _rand_copy1(x, pct)
 #     print(num)
-    return x
+    return xc
 
 # %% ../nbs/14_augment.ipynb 75
 class RandCopy(nn.Module):

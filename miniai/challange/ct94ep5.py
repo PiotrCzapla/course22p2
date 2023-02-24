@@ -61,9 +61,16 @@ from typing import Iterator
 from torch.utils.data import DataLoader, WeightedRandomSampler
 
 class TopLossesCallback(Callback):
-    def __init__(self):
+    def __init__(self, n=None):
         self.epoch_preds = []
         self.epoch_targets = []
+        self.n = n or {
+            0: 0,
+            1: 0.21,
+            2: 0.42,
+            3: 0.21,
+            4: 0
+        }
         
     def before_fit(self, learn):
         self.epoch_preds = []
@@ -82,7 +89,8 @@ class TopLossesCallback(Callback):
             self.epoch_targets.append(learn.batch[1])
             
     def before_epoch(self,learn):
-        learn.dls.train.sampler.epoch = learn.epoch
+        mix_precentage = self.n.get(learn.epoch,0)
+        learn.dls.train.sampler.mix_precentage = self.n.get(learn.epoch,0)
         #print("setting epoch", learn.epoch)
         
     def after_epoch(self, learn):
@@ -101,19 +109,13 @@ class CustomTrainingSampler(WeightedRandomSampler):
         WeightedRandomSampler.__init__(self, *args, **kwargs)
         self.data_indexes_for_epoch = torch.randperm(self.num_samples, generator=self.generator)
         self.top_losses = self.data_indexes_for_epoch.clone()
-        self.epoch = 0
-        self.n = {
-            0: 0,
-            1: 0.21,
-            2: 0.42,
-            3: 0.21,
-            4: 0
-        }
+        self.mix_precentage = 0 
 
-    def setup_epoch(self, epoch=None):
+    def setup_epoch(self, mix_precentage=None):
         rand_tensor = torch.randperm(self.num_samples, generator=self.generator)
-        n = int(self.n[epoch or self.epoch] * self.num_samples)
+        n = int((mix_precentage or self.mix_precentage) * self.num_samples)
         if n != 0:
+            print(f"Replacing top {n} expamples out of {self.num_samples}")
             new_idx = replace_top_losess(n, self.top_losses, self.data_indexes_for_epoch)
             self.data_indexes_for_epoch = new_idx[rand_tensor]
         else:
@@ -121,7 +123,7 @@ class CustomTrainingSampler(WeightedRandomSampler):
 
             
     def __iter__(self) -> Iterator[int]:
-        self.setup_epoch(self.epoch)
+        self.setup_epoch(None)
         yield from self.data_indexes_for_epoch
 
 class CustomDataLoader:
